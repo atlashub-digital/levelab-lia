@@ -24,7 +24,7 @@ export class OpenRouterProvider {
       baseURL: "https://openrouter.ai/api/v1",
       defaultHeaders: {
         "HTTP-Referer": "https://lia.doctor",
-        "X-Title": "LIA — LeveLab Intelligent Assistant",
+        "X-Title": "LIA - LeveLab Intelligent Assistant",
       },
     });
 

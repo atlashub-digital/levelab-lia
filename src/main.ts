@@ -31,7 +31,7 @@ async function bootstrap() {
     JSON.stringify({
       event: "lia.started",
       service: "LIA Core",
-      version: "0.2.1",
+      version: "0.3.0",
       port,
       nodeEnv: process.env.NODE_ENV ?? "unknown",
     }),

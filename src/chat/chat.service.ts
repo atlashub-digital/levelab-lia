@@ -1,12 +1,17 @@
-import { Injectable } from "@nestjs/common";
+import { BadGatewayException, Injectable, Logger } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import { ModelRouterService } from "../llm/model-router.service";
+import {
+  LlmProvidersUnavailableError,
+  ModelRouterService,
+} from "../llm/model-router.service";
 import { SafetyService } from "../safety/safety.service";
 import { ChatRequestDto } from "./chat.dto";
 import { LIA_BASE_INSTRUCTIONS } from "./persona";
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     private readonly safety: SafetyService,
     private readonly router: ModelRouterService,
@@ -41,22 +46,48 @@ export class ChatService {
       .filter(Boolean)
       .join("\n\n");
 
-    const result = await this.router.generate({
-      message: input.message,
-      instructions: contextInstructions,
-      correlationId,
-    });
+    try {
+      const result = await this.router.generate({
+        message: input.message,
+        instructions: contextInstructions,
+        correlationId,
+      });
 
-    return {
-      correlationId,
-      action: "reply",
-      provider: result.provider,
-      model: result.model,
-      safety: {
-        disposition: safety.disposition,
-        reasonCode: safety.reasonCode,
-      },
-      reply: result.text,
-    };
+      return {
+        correlationId,
+        action: "reply",
+        provider: result.provider,
+        model: result.model,
+        safety: {
+          disposition: safety.disposition,
+          reasonCode: safety.reasonCode,
+        },
+        reply: result.text,
+      };
+    } catch (error) {
+      if (error instanceof LlmProvidersUnavailableError) {
+        this.logger.error(
+          JSON.stringify({
+            event: "chat.llm_unavailable",
+            correlationId,
+            attempts: error.attempts.map((attempt) => ({
+              provider: attempt.provider,
+              status: attempt.error.status,
+              code: attempt.error.code,
+              type: attempt.error.type,
+              requestId: attempt.error.requestId,
+            })),
+          }),
+        );
+
+        throw new BadGatewayException({
+          code: "LLM_PROVIDER_UNAVAILABLE",
+          correlationId,
+          message: "No configured LLM provider could complete the request.",
+        });
+      }
+
+      throw error;
+    }
   }
 }

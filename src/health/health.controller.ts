@@ -30,7 +30,7 @@ export class HealthController {
     return {
       service: "LIA Core",
       product: "LeveLab",
-      version: "0.2.1",
+      version: "0.3.0",
       status: "ONLINE",
     };
   }
@@ -51,12 +51,19 @@ export class HealthController {
     const memoryProvider =
       this.config.get<string>("MEMORY_PROVIDER")?.toLowerCase() || "internal";
 
+    const levelabContextConfigured = Boolean(
+      this.config.get<string>("LEVELAB_BACKEND_BASE_URL") &&
+        this.config.get<string>("LEVELAB_API_TOKEN"),
+    );
+
     return {
       service: "LIA Core",
-      version: "0.2.1",
+      version: "0.3.0",
       status: "READY",
       dependencies: {
-        levelabBackend: "NOT_CHECKED",
+        levelabBackend: levelabContextConfigured
+          ? "CONFIGURED"
+          : "NOT_CONFIGURED",
         atendimentoCenter: "NOT_CHECKED",
         memory: memoryProvider === "internal" ? "CONFIGURED_INTERNAL" : "NOT_CHECKED",
         llm: keyMismatch

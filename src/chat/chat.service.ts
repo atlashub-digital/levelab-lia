@@ -11,35 +11,86 @@ import { SafetyService } from "../safety/safety.service";
 import { ChatRequestDto } from "./chat.dto";
 import { LIA_BASE_INSTRUCTIONS } from "./persona";
 
-function memberContextInstruction(result: MemberContextResult): string {
-  if (result.status !== "available") {
-    return "";
+function contextInstruction(result: MemberContextResult): string {
+  if (result.status === "private_available") {
+    const c = result.context;
+    const cf = c.corpoForte;
+
+    return [
+      "Contexto privado consentido da participante. Use apenas nesta conversa privada e apenas quando for útil.",
+      c.displayName ? `Nome preferido: ${c.displayName}.` : "",
+      cf?.week ? `Corpo Forte: semana ${cf.week}.` : "",
+      cf?.moduleId ? `Módulo atual: ${cf.moduleId}.` : "",
+      cf?.goal ? `Objetivo declarado: ${cf.goal}.` : "",
+      cf?.targetCapability ? `Capacidade-alvo: ${cf.targetCapability}.` : "",
+      cf?.mainBarrier ? `Maior barreira declarada: ${cf.mainBarrier}.` : "",
+      cf?.minimumViableAction
+        ? `Mínimo viável escolhido: ${cf.minimumViableAction}.`
+        : "",
+      cf?.currentCommitment
+        ? `Compromisso atual: ${cf.currentCommitment}.`
+        : "",
+      cf?.selectedProgressSignals?.length
+        ? `Sinais de progresso escolhidos: ${cf.selectedProgressSignals.join(", ")}.`
+        : "",
+      "Não revele que possui dados internos. Integre o contexto naturalmente e não trate memória como verdade clínica.",
+    ]
+      .filter(Boolean)
+      .join("\n");
   }
 
-  const c = result.context;
-  const cf = c.corpoForte;
+  if (result.status === "group_safe_available") {
+    const c = result.context;
+    const style = c.interactionStyle;
 
-  return [
-    "Contexto privado consentido da participante. Use apenas nesta conversa privada e apenas quando for útil.",
-    c.displayName ? `Nome preferido: ${c.displayName}.` : "",
-    cf?.week ? `Corpo Forte: semana ${cf.week}.` : "",
-    cf?.moduleId ? `Módulo atual: ${cf.moduleId}.` : "",
-    cf?.goal ? `Objetivo declarado: ${cf.goal}.` : "",
-    cf?.targetCapability ? `Capacidade-alvo: ${cf.targetCapability}.` : "",
-    cf?.mainBarrier ? `Maior barreira declarada: ${cf.mainBarrier}.` : "",
-    cf?.minimumViableAction
-      ? `Mínimo viável escolhido: ${cf.minimumViableAction}.`
-      : "",
-    cf?.currentCommitment
-      ? `Compromisso atual: ${cf.currentCommitment}.`
-      : "",
-    cf?.selectedProgressSignals?.length
-      ? `Sinais de progresso escolhidos: ${cf.selectedProgressSignals.join(", ")}.`
-      : "",
-    "Não revele que possui dados internos. Integre o contexto naturalmente e não trate memória como verdade clínica.",
-  ]
-    .filter(Boolean)
-    .join("\n");
+    return [
+      "Contexto social seguro deste grupo. Foi construído apenas com informação pública/visível neste mesmo grupo.",
+      c.preferredGroupName
+        ? `Pode chamar a pessoa de ${c.preferredGroupName} neste grupo.`
+        : c.displayName
+          ? `Nome público no grupo: ${c.displayName}.`
+          : "",
+      c.role ? `Papel no grupo: ${c.role}.` : "",
+      c.familiarity
+        ? `Familiaridade conversacional neste grupo: ${c.familiarity}.`
+        : "",
+      style?.tone ? `Tom de interação observado no grupo: ${style.tone}.` : "",
+      style?.verbosity
+        ? `Preferência observada de detalhe no grupo: ${style.verbosity}.`
+        : "",
+      c.publicHistory?.summary
+        ? `Resumo apenas das interações públicas recentes neste grupo: ${c.publicHistory.summary}`
+        : "",
+      c.publicHistory?.recentTopics?.length
+        ? `Tópicos públicos recentes neste grupo: ${c.publicHistory.recentTopics.join(", ")}.`
+        : "",
+      c.groupProgramContext?.currentTheme
+        ? `Tema atual do grupo: ${c.groupProgramContext.currentTheme}.`
+        : "",
+      "Use isso apenas para continuidade social e naturalidade. Não faça inferências sobre saúde, diagnóstico, medicação, vida privada, estado emocional oculto ou qualquer dado sensível.",
+      "Nunca sugira que conhece informações privadas da pessoa. Se algo não foi dito publicamente neste grupo, trate como desconhecido.",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  return "";
+}
+
+function contextStatus(result: MemberContextResult): string {
+  if (result.status === "private_available") {
+    return "PRIVATE_USED";
+  }
+
+  if (result.status === "group_safe_available") {
+    return "GROUP_SAFE_USED";
+  }
+
+  if (result.status === "unavailable") {
+    return `UNAVAILABLE:${result.reason}`;
+  }
+
+  return "NOT_REQUESTED";
 }
 
 @Injectable()
@@ -71,6 +122,7 @@ export class ChatService {
 
     const memberContext = await this.contextClient.getMemberContext({
       memberId: input.memberId,
+      groupId: input.groupId,
       channel: input.channel,
       correlationId,
     });
@@ -83,6 +135,7 @@ export class ChatService {
     const contextInstructions = [
       LIA_BASE_INSTRUCTIONS,
       `Canal atual: ${input.channel || "web"}.`,
+      input.groupId ? `Grupo atual: ${input.groupId}.` : "",
       input.programId ? `Programa: ${input.programId}.` : "",
       input.moduleId ? `Módulo solicitado: ${input.moduleId}.` : "",
       corpoForteModule
@@ -92,9 +145,9 @@ export class ChatService {
             "Não transforme este objetivo conversacional em prescrição clínica.",
           ].join("\n")
         : "",
-      memberContextInstruction(memberContext),
-      memberContext.status === "blocked_for_group"
-        ? "Modo grupo ativo: contexto privado da participante foi bloqueado por código. Não personalize usando memória privada."
+      contextInstruction(memberContext),
+      input.channel === "group"
+        ? "Modo grupo: use somente o contexto social seguro do próprio grupo. Contexto privado e memória privada não estão autorizados."
         : "",
       safety.publicInstruction
         ? `Regra específica desta mensagem: ${safety.publicInstruction}`
@@ -116,10 +169,9 @@ export class ChatService {
         provider: result.provider,
         model: result.model,
         context: {
-          memberContext:
-            memberContext.status === "available"
-              ? "USED"
-              : memberContext.status.toUpperCase(),
+          memberContext: contextStatus(memberContext),
+          channel: input.channel || "web",
+          groupId: input.groupId,
           program: input.programId,
           module: input.moduleId,
         },

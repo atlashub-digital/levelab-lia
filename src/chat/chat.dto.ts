@@ -22,6 +22,11 @@ export class ChatRequestDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(128)
+  groupId?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(64)
   programId?: string;
 

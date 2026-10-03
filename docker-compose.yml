@@ -1,0 +1,28 @@
+services:
+  lia-core:
+    build:
+      context: .
+    container_name: levelab-lia-core
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:${PORT:-8095}:${PORT:-8095}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:' + (process.env.PORT || '8095') + '/api/health').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1))"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - lia-net
+
+networks:
+  lia-net:
+    driver: bridge

@@ -1,85 +1,149 @@
 # LeveLab LIA
 
-Conversational orchestration, policies, safety and program flows for **LIA — LeveLab Intelligent Assistant**.
+Conversational intelligence, memory policy, safety and program-aware experiences for **LIA — LeveLab Intelligent Assistant**.
 
-## Scope
+## Product vision
 
-This repository owns:
+LIA is not only the AI inside a course.
 
-- LIA system architecture
-- system prompts and reusable policies
-- persona/tone configuration
-- memory policy
-- tool contracts
-- safety and escalation logic
-- Corpo Forte 40+ conversational flows
-- GLP-1 Companion guardrails
-- check-ins, quizzes and reflection flows
-- multimodal interaction rules
-- Atendimento.Center / Chatwoot adapters
-- human handoff context
-- conversational QA and red-team tests
+She is the LeveLab day-to-day companion across:
 
-## Important boundary
+- web/app;
+- WhatsApp;
+- LeveLab communities;
+- premium programs;
+- Corpo Forte;
+- future LeveLab Care experiences.
 
-LIA is an AI wellness companion. It does not diagnose, prescribe, adjust medication doses, make clinical decisions, or replace qualified professionals.
+A member enrolled in **Corpo Forte** receives additional program-aware context, weekly content, optional daily micro-check-ins and personalized continuity.
+
+## Architecture decision
+
+**LIA is a separate product/service, but it reuses Atendimento.Center as the shared omnichannel control plane.**
+
+We do **not** duplicate Chatwoot, Evolution, n8n and Typebot for every LeveLab agent/product.
+
+See:
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Integrations](docs/INTEGRATIONS.md)
+- [Corpo Forte Runtime](docs/CORPO_FORTE_RUNTIME.md)
+- [Memory & Safety](docs/MEMORY_AND_SAFETY.md)
+- [Deployment](docs/DEPLOYMENT.md)
+
+## LIA owns
+
+- persona and tone;
+- system policies;
+- safety;
+- program-aware conversational flows;
+- memory candidates and consent rules;
+- weekly/daily check-ins;
+- content retrieval behavior;
+- group/community behavior;
+- human escalation decisions;
+- multimodal behavior;
+- evaluation/red-team.
+
+## LIA does not own
+
+- canonical editorial content;
+- member enrollment/progress database;
+- WhatsApp transport;
+- human inbox;
+- deterministic lead funnels.
 
 ## Content architecture
 
-LIA **must not maintain a duplicate editorial library**.
-
 ```text
 Notion Content Lab
-  -> Approved content
+  -> professional review
+  -> approved version
   -> LeveLab Backend runtime API
-  -> LIA retrieves the relevant version
-  -> LIA applies conversational flow + safety policy
+  -> LIA retrieves relevant content
+  -> LIA applies persona + member context + safety
 ```
 
-## Corpo Forte experience
+LIA must not maintain a duplicate editorial library.
 
-For each week, LIA can support:
+## Omnichannel architecture
 
-- explain
-- simplify
-- ask one question at a time
-- reflection
-- quiz feedback
-- goal setting
-- weekly check-in
-- commitment
-- memory candidates
-- recommendation of internal content
-- professional/human escalation
+```text
+LIA Core
+  <-> LeveLab Backend
+  <-> Atendimento.Center
+       -> Evolution / WhatsApp
+       -> Chatwoot / human handoff
+       -> n8n / async automation
+       -> Typebot / deterministic flows
+```
 
-## Safety defaults
+## Corpo Forte
 
-- `clinical_interpretation = false`
-- `medication_advice = false`
-- `dose_adjustment = false`
-- `diagnosis = false`
-- `individualized_therapeutic_diet = false`
-- escalation rules required for health-related flows
+The program experience is:
 
-## Memory
+```text
+microaula
+  -> reading
+  -> workbook
+  -> LIA
+  -> quiz
+  -> commitment
+  -> 7-day plan
+  -> check-in
+```
 
-Store only what is necessary and consented for product continuity. Avoid unnecessary clinical data in the conversation layer.
+LIA can know, with consent:
 
-## Initial implementation tracks
+- current week;
+- chosen goal;
+- capability target;
+- main barrier;
+- minimum viable action;
+- selected progress signals;
+- weekly commitment.
 
-1. core prompt/policy framework
-2. content retrieval contract
-3. Corpo Forte onboarding flow
-4. weekly program flow engine
-5. GLP-1 Companion safety layer
-6. human handoff
-7. multimodal inputs
-8. evaluation + red-team suite
+## Safety boundary
+
+LIA is a wellness companion and educator.
+
+It does not:
+
+- diagnose;
+- prescribe;
+- alter medication;
+- adjust dose;
+- provide individualized therapeutic diets;
+- interpret symptoms as a diagnosis;
+- replace qualified professionals.
+
+## WhatsApp groups
+
+LIA may act as a **community assistant/moderator** through the channel layer.
+
+Private member memory must never be exposed in a group conversation.
+
+## Deployment
+
+Phase 1: independent LIA service using the existing Atendimento.Center channel infrastructure.
+
+Phase 2: move LIA compute to a dedicated VPS/cluster when scaling, isolation or processing load justifies it.
+
+**Separate product, shared channel infrastructure.**
 
 ## Assets
 
-Approved LIA visual masters remain in the LeveLab Google Drive DAM. Runtime copies should be optimized and referenced by asset IDs.
+Approved LIA visual masters remain in the LeveLab Google Drive DAM. Runtime copies must preserve the canonical LIA identity.
 
 ## Security
 
-This repository is public. Do not commit secrets, private member data, hidden production prompts containing credentials, private keys, or provider tokens.
+This repository is public.
+
+Never commit:
+
+- secrets;
+- tokens;
+- private member data;
+- production credentials;
+- unrestricted raw conversation exports;
+- sensitive health records.

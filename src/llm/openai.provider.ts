@@ -24,7 +24,13 @@ export class OpenAiProvider {
     const response = await client.responses.create({
       model,
       instructions: input.instructions,
-      input: input.message,
+      input: [
+        ...(input.history ?? []).map((turn) => ({
+          role: turn.role,
+          content: turn.text,
+        })),
+        { role: "user" as const, content: input.message },
+      ],
       store: false,
       reasoning: {
         effort: "low",

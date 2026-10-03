@@ -159,6 +159,7 @@ export class ChatService {
     try {
       const result = await this.router.generate({
         message: input.message,
+        history: input.history,
         instructions: contextInstructions,
         correlationId,
       });

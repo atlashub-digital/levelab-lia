@@ -1,4 +1,25 @@
-import { IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { Type } from "class-transformer";
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from "class-validator";
+
+/** One prior turn of the current session (short-term memory, not persisted). */
+export class ChatTurnDto {
+  @IsIn(["user", "assistant"])
+  role!: "user" | "assistant";
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(4000)
+  text!: string;
+}
 
 export class ChatRequestDto {
   @IsString()
@@ -34,4 +55,12 @@ export class ChatRequestDto {
   @IsString()
   @MaxLength(64)
   moduleId?: string;
+
+  /** Prior turns of the current session, oldest first, excluding `message`. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => ChatTurnDto)
+  history?: ChatTurnDto[];
 }

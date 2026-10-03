@@ -1,0 +1,26 @@
+{
+  "id": "lia",
+  "workspace": "levelab",
+  "version": "0.1.0",
+  "name": "LIA",
+  "description": "LeveLab AI wellness companion",
+  "locales": ["pt-BR", "pt-PT", "en", "es"],
+  "channels": ["webchat", "whatsapp"],
+  "modes": ["guest", "member"],
+  "capabilities": {
+    "text": true,
+    "audio_in": true,
+    "audio_out": true,
+    "image_in": true,
+    "image_out": true,
+    "human_handoff": true
+  },
+  "default_handoff_queue": "levelab-care",
+  "commercial_handoff_queue": "levelab-commercial",
+  "safety": {
+    "diagnosis": false,
+    "prescribing": false,
+    "dose_adjustment": false,
+    "clinical_decision": false
+  }
+}

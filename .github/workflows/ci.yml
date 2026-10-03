@@ -1,0 +1,28 @@
+name: Contract Validation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JSON contracts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for path in Path('.').rglob('*.json'):
+              with path.open(encoding='utf-8') as f:
+                  json.load(f)
+              print(f"OK {path}")
+          PY
+      - name: Ensure core policy files exist
+        run: |
+          test -f agents/lia/system.md
+          test -f agents/lia/safety.md
+          test -f agents/lia/memory.md
+          test -f tools/contracts.md

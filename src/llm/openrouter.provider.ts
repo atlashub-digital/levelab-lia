@@ -35,6 +35,10 @@ export class OpenRouterProvider {
           role: "system",
           content: input.instructions,
         },
+        ...(input.history ?? []).map((turn) => ({
+          role: turn.role,
+          content: turn.text,
+        })),
         {
           role: "user",
           content: input.message,
